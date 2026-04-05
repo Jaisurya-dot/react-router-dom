@@ -1,31 +1,72 @@
 import React, { useState, useEffect } from "react";
 import { FaPlus, FaTrash, FaChevronDown, FaChevronUp, FaCloudUploadAlt, FaListUl, FaTerminal } from "react-icons/fa";
+import { useParams, useNavigate } from "react-router";
+import { toast } from "react-toastify";
 import CourseMetadataForm from "./CourseMetadataForm";
 import CourseThumbnailAside from "./CourseThumbnailAside";
 import LessonItem, { FILE_TYPES } from "./LessonItem";
+import { createCourse, updateCourse, createModule as createModuleApi, fetchCourseById } from "../api/api";
 
 const CourseContentBuilder = () => {
+  const { id } = useParams(); // Check if editing
+  const navigate = useNavigate();
+
   // --- STATE FOR GENERAL INFO ---
   const [courseInfo, setCourseInfo] = useState({
     title: "",
     category: "",
     description: "",
-    thumbnail: null,
-    thumbnailPreview: null,
+    thumbnail: "",
+    instructor: "Admin/Instructor",
+    price: 0,
   });
 
   // --- STATE FOR CURRICULUM ---
   const [modules, setModules] = useState([]);
   const [openModules, setOpenModules] = useState({});
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  // Clean up memory leaks from object URLs
+  // ------------------------
+  // DATA LOADING (EDIT MODE)
+  // ------------------------
   useEffect(() => {
-    return () => {
-      if (courseInfo.thumbnailPreview) {
-        URL.revokeObjectURL(courseInfo.thumbnailPreview);
-      }
-    };
-  }, [courseInfo.thumbnailPreview]);
+    if (id) {
+      const loadCourse = async () => {
+        try {
+          setIsEditMode(true);
+          const { data } = await fetchCourseById(id);
+          setCourseInfo({
+            title: data.title,
+            category: data.category,
+            description: data.description,
+            thumbnail: data.thumbnail,
+            instructor: data.instructor,
+            price: data.price || 0,
+          });
+
+          // Map backend modules to frontend modules structure
+          if (data.modules) {
+             const mappedModules = data.modules.map(mod => ({
+                id: mod._id,
+                title: mod.title,
+                items: mod.fileList.map(file => ({
+                   id: Math.random(), // frontend unique key
+                   fileName: file.fileName,
+                   fileType: file.fileType,
+                   fileUrl: file.fileUrl
+                }))
+             }));
+             setModules(mappedModules);
+          }
+        } catch (error) {
+          toast.error("Failed to load course for editing");
+          console.error(error);
+        }
+      };
+      loadCourse();
+    }
+  }, [id]);
 
   // ------------------------
   // HANDLERS
@@ -33,27 +74,25 @@ const CourseContentBuilder = () => {
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (courseInfo.thumbnailPreview) URL.revokeObjectURL(courseInfo.thumbnailPreview);
       setCourseInfo({
         ...courseInfo,
-        thumbnail: file,
-        thumbnailPreview: URL.createObjectURL(file),
+        thumbnail: URL.createObjectURL(file), // Temporary
       });
     }
   };
 
   const addModule = () => {
-    const id = Date.now();
-    setModules([...modules, { id, title: "", items: [] }]);
-    setOpenModules((prev) => ({ ...prev, [id]: true }));
+    const moduleId = Date.now();
+    setModules([...modules, { id: moduleId, title: "", items: [] }]);
+    setOpenModules((prev) => ({ ...prev, [moduleId]: true }));
   };
 
-  const removeModule = (id) => setModules(modules.filter((m) => m.id !== id));
-  const updateModuleTitle = (id, title) => setModules(modules.map((m) => (m.id === id ? { ...m, title } : m)));
-  const toggleModule = (id) => setOpenModules((prev) => ({ ...prev, [id]: !prev[id] }));
+  const removeModule = (mid) => setModules(modules.filter((m) => m.id !== mid));
+  const updateModuleTitle = (mid, title) => setModules(modules.map((m) => (m.id === mid ? { ...m, title } : m)));
+  const toggleModule = (mid) => setOpenModules((prev) => ({ ...prev, [mid]: !prev[mid] }));
 
   const addItem = (moduleId, type) => {
-    setModules(modules.map((m) => m.id === moduleId ? { ...m, items: [...m.items, { id: Date.now(), title: "", type, file: null }] } : m));
+    setModules(modules.map((m) => m.id === moduleId ? { ...m, items: [...m.items, { id: Date.now(), fileName: "", fileType: type, fileUrl: "" }] } : m));
   };
 
   const updateItem = (moduleId, itemId, updates) => {
@@ -64,10 +103,55 @@ const CourseContentBuilder = () => {
     setModules(modules.map((m) => m.id === moduleId ? { ...m, items: m.items.filter((i) => i.id !== itemId) } : m));
   };
 
-  const handlePublish = (e) => {
+  const handlePublish = async (e) => {
     e.preventDefault();
-    console.log("Publishing Course:", { courseInfo, modules });
-    alert("Course Publishing Initiated!");
+    
+    if (!courseInfo.title || !courseInfo.description) {
+      toast.error("Please provide course title and description.");
+      return;
+    }
+
+    try {
+      setIsPublishing(true);
+      
+      let courseId = id;
+
+      if (isEditMode) {
+        // Update existing
+        await updateCourse(courseId, courseInfo);
+        // Note: For simplicity, we are only updating metadata. 
+        // Syncing complex nested modules on edit would require a more advanced differ logic.
+        toast.info("Updating course metadata...");
+      } else {
+        // Create NEW
+        const courseResponse = await createCourse(courseInfo);
+        courseId = courseResponse.data._id;
+      }
+
+      // Re-link or create modules if they belong to a new flow
+      // (For this project scope, we create/overwrite modules on publish)
+      const modulePromises = modules.map((mod, index) => {
+        return createModuleApi({
+          courseId: courseId,
+          title: mod.title || `Module ${index + 1}`,
+          order: index,
+          fileList: mod.items.map(item => ({
+            fileName: item.fileName || "Untitled Lesson",
+            fileUrl: item.fileUrl || "https://example.com",
+            fileType: item.fileType,
+          }))
+        });
+      });
+
+      await Promise.all(modulePromises);
+
+      toast.success(isEditMode ? "Course updated!" : "Course published!");
+      navigate("/"); 
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Operation failed.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -82,10 +166,8 @@ const CourseContentBuilder = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
-          {/* COURSE INFO COMPONENT */}
           <CourseMetadataForm info={courseInfo} setInfo={setCourseInfo} />
 
-          {/* CURRICULUM SECTION */}
           <section className="space-y-6">
             <div className="flex justify-between items-center px-4">
               <h2 className="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-3">
@@ -178,12 +260,12 @@ const CourseContentBuilder = () => {
           </section>
         </div>
 
-        {/* SIDE COLUMN: THUMBNAIL COMPONENT */}
         <div className="lg:col-span-1">
           <CourseThumbnailAside 
             preview={courseInfo.thumbnailPreview} 
             onChange={handleThumbnailChange} 
             onSubmit={handlePublish}
+            isPublishing={isPublishing}
           />
         </div>
       </div>

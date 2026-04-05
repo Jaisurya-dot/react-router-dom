@@ -30,10 +30,11 @@ const CourseMetadataForm = ({ info, setInfo }) => {
                 onChange={(e) => setInfo({ ...info, category: e.target.value })}
               >
                 <option value="">Select Category</option>
-                <option value="tech">Technology</option>
-                <option value="business">Business</option>
-                <option value="design">Design</option>
-                <option value="marketing">Marketing</option>
+                <option value="Web Development">Web Development</option>
+                <option value="Full Stack">Full Stack</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Business">Business</option>
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-indigo-400 transition-colors">
                 ▼
@@ -42,14 +43,14 @@ const CourseMetadataForm = ({ info, setInfo }) => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-400 ml-1">Difficulty</label>
-            <select
-               className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none appearance-none transition-all font-bold text-gray-800 cursor-pointer"
-            >
-               <option value="beginner">Beginner</option>
-               <option value="intermediate">Intermediate</option>
-               <option value="advanced">Advanced</option>
-            </select>
+            <label className="text-xs font-black uppercase tracking-wider text-gray-400 ml-1">Price (₹)</label>
+            <input
+              type="number"
+              placeholder="e.g. 1999"
+              className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all font-bold text-gray-800"
+              value={info.price}
+              onChange={(e) => setInfo({ ...info, price: e.target.value })}
+            />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { FaImage, FaCloudUploadAlt, FaRocket, FaTerminal } from "react-icons/fa";
 
-const CourseThumbnailAside = ({ preview, onChange, onSubmit }) => {
+const CourseThumbnailAside = ({ preview, onChange, onSubmit, isPublishing }) => {
   return (
     <aside className="space-y-8 sticky top-8">
       <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
@@ -41,18 +41,34 @@ const CourseThumbnailAside = ({ preview, onChange, onSubmit }) => {
             className="absolute inset-0 opacity-0 cursor-pointer"
             accept="image/*"
             onChange={onChange}
+            disabled={isPublishing}
           />
         </label>
 
         <div className="mt-8 space-y-4">
           <button 
             onClick={onSubmit}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl transition shadow-xl shadow-indigo-100 active:scale-95 flex items-center justify-center gap-3 group"
+            disabled={isPublishing}
+            className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl transition shadow-xl shadow-indigo-100 active:scale-95 flex items-center justify-center gap-3 group
+              ${isPublishing ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
           >
-            <FaRocket className="text-sm group-hover:animate-pulse" />
-            <span>Publish Course</span>
+            {isPublishing ? (
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <span className="uppercase tracking-[0.2em] text-[11px]">Forging Course...</span>
+              </div>
+            ) : (
+              <>
+                <FaRocket className="text-sm group-hover:animate-pulse" />
+                <span>Publish Course</span>
+              </>
+            )}
           </button>
-          <button className="w-full bg-white hover:bg-gray-50 text-gray-600 font-black py-4 rounded-2xl border border-gray-100 transition shadow-sm active:scale-95">
+          <button 
+            disabled={isPublishing}
+            className={`w-full bg-white hover:bg-gray-50 text-gray-600 font-black py-4 rounded-2xl border border-gray-100 transition shadow-sm active:scale-95
+              ${isPublishing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             Save Progress
           </button>
         </div>

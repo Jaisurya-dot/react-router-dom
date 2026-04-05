@@ -4,7 +4,7 @@ import { MdDashboard, MdOutlineQuiz } from "react-icons/md";
 import { FaBook, FaUserGraduate, FaChalkboardTeacher } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
 import { HiOutlineLogout } from "react-icons/hi";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 
 const Sidebar = ({ collapse, setCollapse }) => {
 
