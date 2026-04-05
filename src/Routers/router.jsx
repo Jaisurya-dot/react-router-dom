@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import Mainlayout from "../layout/mainlayout";
 import Dashboard from "../pages/Dashboard";
 import CreateCourse from "../pages/CreateCourse";
+import WatchCourse from "../pages/WatchCourse";
 
  
 const router = createBrowserRouter([
@@ -11,8 +12,9 @@ const router = createBrowserRouter([
         children: [
             { index: true, Component: Dashboard },
             { path: "/CreateCourse", Component: CreateCourse},
+            { path: "/Watch/:id", Component: WatchCourse},
         ],
     },
 ]);
 
-export default router
+export default router
